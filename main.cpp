@@ -8,15 +8,54 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#define HUE_VALUE_COUNT 360
+#define SATURATION_VALUE_COUNT 100
+#define BRIGHTNESS_VALUE_COUNT 100
+
 struct Options {
     const char* inputImage{ nullptr };
     const char* outputJsonPalette{ nullptr };
     const char* outputHtmlPalette{ nullptr };
 };
 
+struct ColorHSL {
+    unsigned int hue{};
+    unsigned int saturation{};
+    unsigned int brightness{};
+};
+
+struct Color {
+    unsigned char r{};
+    unsigned char g{};
+    unsigned char b{};
+};
+
+template<typename T>
+struct Scored {
+    int score{};
+    T data{};
+};
+
+struct Base16HSLPalette {
+    ColorHSL primary[8]{};
+    ColorHSL accents[8]{};
+};
+
 struct Base16Palette {
-    unsigned int primary[8][3]{};
-    unsigned int accents[8][3]{};
+    Color primary[8]{};
+    Color accents[8]{};
+};
+
+struct KeyHS {
+    int population{};
+    float hue{};
+    float saturation{};
+};
+
+struct KeyL {
+    int population{};
+    float brightness{};
+    std::vector<KeyHS> keyHSs{};
 };
 
 float GetMinChannelValue(float r, float g, float b) {
@@ -73,16 +112,35 @@ float GetColorHUE(float r, float g, float b) {
     return std::clamp(v, 0.0f, 360.0f);
 }
 
-float f(float n, float h, float s, float l) {
-    float a = s * std::min(l, 1.0f - l);
-    float k = fmod((n + h / 30), 12);
-    return l - a * std::max(std::min(std::min(k - 3.0f, 9.0f - k), 1.0f), -1.0f);
+float HueToRgb(float p, float q, float t) {
+    printf("%f, %f, %f\n", p, q, t);
+    if (t < 0.0f) t += 1;
+    if (t > 1.0f) t -= 1;
+    if (t < 1.0f/6.0f) return p + (q - p) * 6.0f * t;
+    if (t < 1.0f/2.0f) return q;
+    if (t < 2.0f/3.0f) return p + (q - p) * (2.0f/3.0f - t) * 6.0f;
+    return p;
 }
 
-void Hsl2Rgb(float h, float s, float l, float* r, float* g, float* b) {
-    *r = f(0, h, s, l) * 255;
-    *g = f(8, h, s, l) * 255;
-    *b = f(4, h, s, l) * 255;
+Color Hsl2Rgb(const ColorHSL& hslColor) {
+    float h = (float)hslColor.hue / (float)HUE_VALUE_COUNT;
+    float s = (float)hslColor.saturation / (float)SATURATION_VALUE_COUNT;
+    float l = (float)hslColor.brightness / (float)BRIGHTNESS_VALUE_COUNT;
+
+    Color color{};
+    if (s == 0) {
+        color.r = l;
+        color.g = l;
+        color.b = l;
+    } else {
+        float q = l < 0.5f ? l * (1.0f + s) : l + s - l * s;
+        float p = 2.0f * l - q;
+        color.r = HueToRgb(p, q, h + 1.0f / 3.0f) * 255;
+        color.g = HueToRgb(p, q, h) * 255;
+        color.b = HueToRgb(p, q, h - 1.0f / 3.0f) * 255;
+    }
+    
+    return color;
 }
 
 void WriteJsonPalette(const Base16Palette& palette, const char* path) {
@@ -159,23 +217,23 @@ void WriteHtmlPalette(const Base16Palette& palette, const char* path) {
         </body>
     </html>
     )HTML", 
-    palette.primary[0][0], palette.primary[0][1], palette.primary[0][2], 
-    palette.primary[1][0], palette.primary[1][1], palette.primary[1][2], 
-    palette.primary[2][0], palette.primary[2][1], palette.primary[2][2], 
-    palette.primary[3][0], palette.primary[3][1], palette.primary[3][2], 
-    palette.primary[4][0], palette.primary[4][1], palette.primary[4][2], 
-    palette.primary[5][0], palette.primary[5][1], palette.primary[5][2], 
-    palette.primary[6][0], palette.primary[6][1], palette.primary[6][2], 
-    palette.primary[7][0], palette.primary[7][1], palette.primary[7][2], 
+    palette.primary[0].r, palette.primary[0].g, palette.primary[0].b, 
+    palette.primary[1].r, palette.primary[1].g, palette.primary[1].b, 
+    palette.primary[2].r, palette.primary[2].g, palette.primary[2].b, 
+    palette.primary[3].r, palette.primary[3].g, palette.primary[3].b, 
+    palette.primary[4].r, palette.primary[4].g, palette.primary[4].b, 
+    palette.primary[5].r, palette.primary[5].g, palette.primary[5].b, 
+    palette.primary[6].r, palette.primary[6].g, palette.primary[6].b, 
+    palette.primary[7].r, palette.primary[7].g, palette.primary[7].b, 
 
-    palette.accents[0][0], palette.accents[0][1], palette.accents[0][2], 
-    palette.accents[1][0], palette.accents[1][1], palette.accents[1][2], 
-    palette.accents[2][0], palette.accents[2][1], palette.accents[2][2], 
-    palette.accents[3][0], palette.accents[3][1], palette.accents[3][2], 
-    palette.accents[4][0], palette.accents[4][1], palette.accents[4][2], 
-    palette.accents[5][0], palette.accents[5][1], palette.accents[5][2], 
-    palette.accents[6][0], palette.accents[6][1], palette.accents[6][2], 
-    palette.accents[7][0], palette.accents[7][1], palette.accents[7][2]);
+    palette.accents[0].r, palette.accents[0].g, palette.accents[0].b, 
+    palette.accents[1].r, palette.accents[1].g, palette.accents[1].b, 
+    palette.accents[2].r, palette.accents[2].g, palette.accents[2].b, 
+    palette.accents[3].r, palette.accents[3].g, palette.accents[3].b, 
+    palette.accents[4].r, palette.accents[4].g, palette.accents[4].b, 
+    palette.accents[5].r, palette.accents[5].g, palette.accents[5].b, 
+    palette.accents[6].r, palette.accents[6].g, palette.accents[6].b, 
+    palette.accents[7].r, palette.accents[7].g, palette.accents[7].b);
 #pragma GCC diagnostic pop
 
     std::ofstream file{};
@@ -184,49 +242,28 @@ void WriteHtmlPalette(const Base16Palette& palette, const char* path) {
     file.close();
 }
 
-#define HUE_VALUE_COUNT 360
-#define SATURATION_VALUE_COUNT 100
-#define BRIGHTNESS_VALUE_COUNT 100
-
-struct Base16HSLPalette {
-    unsigned int primary[8][3]{};
-    unsigned int accents[8][3]{};
-};
-
-struct KeySL {
-    int population{};
-    int brightness{};
-    int averageSaturation{};
-};
-
-struct KeyHUE {
-    int population{};
-    int hue{};
-};
-
 Base16Palette PaletteHSLtoRGB(const Base16HSLPalette& palette) {
     Base16Palette paletteRGB{};
     
     for (int i = 0; i < 8; ++i) {
-        float r, g, b;
-        float hue = (float)palette.accents[i][0];
-        float saturation = (float)palette.accents[i][1] / (float)SATURATION_VALUE_COUNT;
-        float brightness = (float)palette.accents[i][2] / (float)BRIGHTNESS_VALUE_COUNT;
-
-        Hsl2Rgb(hue, saturation, brightness, &r, &g, &b);
-        paletteRGB.accents[i][0] = r;
-        paletteRGB.accents[i][1] = g;
-        paletteRGB.accents[i][2] = b;
+        paletteRGB.primary[i] = Hsl2Rgb(palette.primary[i]);
+        paletteRGB.accents[i] = Hsl2Rgb(palette.accents[i]);
     }
 
     return paletteRGB;
 }
 
+int CalculateDifferenceMatchingScore(int a, int b, int target) {
+    return abs(abs(a - b) - target);
+}
+
+float Lerp(float a, float b, float t) {
+    return a + (b - a) * t;
+}
+
 void ExtractPaletteFromImage(unsigned char* data, int width, int height, int channels, Base16Palette& palette) {
-    int populationBrightness[BRIGHTNESS_VALUE_COUNT]{};
-    int populationHUE[HUE_VALUE_COUNT]{};
-    int populationPerBrightnessSaturation[BRIGHTNESS_VALUE_COUNT][SATURATION_VALUE_COUNT]{};
     int totalPopulation = width * height;
+    int populationBrightness[BRIGHTNESS_VALUE_COUNT]{};
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
@@ -234,133 +271,175 @@ void ExtractPaletteFromImage(unsigned char* data, int width, int height, int cha
             float r = data[idx * channels] / 255.0;
             float g = data[idx * channels + 1] / 255.0;
             float b = data[idx * channels + 2] / 255.0;
-            int hueIdx = (int)GetColorHUE(r, g, b);
-            int saturationIdx = (int)(GetColorSaturation(r, g, b) * SATURATION_VALUE_COUNT);
+            //int hueIdx = (int)GetColorHUE(r, g, b);
+            //int saturationIdx = (int)(GetColorSaturation(r, g, b) * SATURATION_VALUE_COUNT);
             int brightnessIdx = (int)(GetColorBrightness(r, g, b) * BRIGHTNESS_VALUE_COUNT);
             populationBrightness[brightnessIdx] += 1;
-            populationHUE[hueIdx] += 1;
-            populationPerBrightnessSaturation[brightnessIdx][saturationIdx] += 1;
         }
     }
 
-    int averageSaturationPerBrightness[BRIGHTNESS_VALUE_COUNT]{};
+    std::vector<KeyL> keyLs{};
 
     for (int i = 0; i < BRIGHTNESS_VALUE_COUNT; ++i) {
-        int accSat = 0;
-        int c = 0;
-        for (int j = 0; j < SATURATION_VALUE_COUNT; ++j) {
-            accSat += j * populationPerBrightnessSaturation[i][j];
-            c += populationPerBrightnessSaturation[i][j];
-        }
-        if (c == 0)
-            averageSaturationPerBrightness[i] = 0;
-        else
-            averageSaturationPerBrightness[i] = accSat / c;
-    }
-
-    std::vector<KeySL> keySL{};
-
-    for (int i = 0; i < BRIGHTNESS_VALUE_COUNT; ++i) {
-        int beforePop = 0;
-        int currentPop = populationBrightness[i];
-        int afterPop = 0;
-        
-        if (i > 0)
-            beforePop = populationBrightness[i - 1];
-        if (i < BRIGHTNESS_VALUE_COUNT - 1)
-            afterPop = populationBrightness[i + 1];
-
-        if (currentPop > beforePop && currentPop > afterPop && currentPop > 1000) {
-            KeySL info{};
-            info.population = currentPop;// + beforePop + afterPop;
-            info.brightness = i;
-            info.averageSaturation = averageSaturationPerBrightness[i];
-            keySL.push_back(info);
+        if (populationBrightness[i] > totalPopulation / 1000) {
+            KeyL keyL{};
+            keyL.population = populationBrightness[i];
+            keyL.brightness = i;
+            keyLs.push_back(keyL);
         }
     }
 
-    std::vector<KeyHUE> popHUE{};
+    for (int i = 0; i < keyLs.size() - 1;) {
+        KeyL keyA = keyLs[i];
+        KeyL keyB = keyLs[i + 1];
 
-    for (int i = 0; i < HUE_VALUE_COUNT; ++i) {
-        KeyHUE ph{};
-        ph.hue = i;
-        ph.population = populationHUE[i];
-        if (ph.population > totalPopulation / 200)
-            popHUE.push_back(ph);
+        if (keyB.brightness - keyA.brightness < 8.0f) {
+            KeyL newKey{};
+            newKey.population = keyA.population + keyB.population;
+            newKey.brightness = (keyA.brightness * keyA.population + keyB.brightness * keyB.population) / newKey.population;
+            keyLs.erase(keyLs.begin() + i);
+            keyLs.erase(keyLs.begin() + i);
+            keyLs.insert(keyLs.begin() + i, newKey);
+        } else {
+            ++i;
+        }
     }
 
-    std::sort(popHUE.begin(), popHUE.end(), [](const KeyHUE& a, const KeyHUE& b){
-        return a.hue < b.hue;
-    });
-
-    int minDiff = 0;
-    int diffThreshold = 15;
-
-    while(minDiff < diffThreshold) {
-        minDiff = diffThreshold;
-
-        std::sort(popHUE.begin(), popHUE.end(), [](const KeyHUE& a, const KeyHUE& b){
-            return a.hue < b.hue;
-        });
-
-        for (int i = 0; i < popHUE.size(); ++i) {
-            KeyHUE keyA = popHUE[i];
-            KeyHUE keyB = popHUE[(i + 1) % popHUE.size()];
-
-            int rawDiff = abs(keyA.hue - keyB.hue);
-            int currDiff = rawDiff;
-            if (rawDiff > 45)
-                int currDiff = sin((float)rawDiff / (float)HUE_VALUE_COUNT * M_PI / 180.0f) * 360;
-
-            if (currDiff < diffThreshold) {
-                minDiff = currDiff;
-
-                int hueAverage = 0;
-                if (rawDiff <= 180) {
-                    hueAverage = keyA.hue * keyA.population + keyB.hue * keyB.population;
-                } else {
-                    hueAverage = ((keyA.hue + 360) * keyA.population + keyB.hue * keyB.population) % 360;
+    std::vector<int[HUE_VALUE_COUNT][SATURATION_VALUE_COUNT + 1]> keyLsPopulationsHUE( keyLs.size() );
+    {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                int idx = x + y * width;
+                float r = data[idx * channels] / 255.0;
+                float g = data[idx * channels + 1] / 255.0;
+                float b = data[idx * channels + 2] / 255.0;
+                int hueIdx = (int)GetColorHUE(r, g, b);
+                int saturationIdx = (int)(GetColorSaturation(r, g, b) * SATURATION_VALUE_COUNT);
+                int brightnessIdx = (int)(GetColorBrightness(r, g, b) * BRIGHTNESS_VALUE_COUNT);
+                int lastDiff{ BRIGHTNESS_VALUE_COUNT };
+                for (int i = 0; i < keyLs.size(); ++i) {
+                    int currentDiff = abs(brightnessIdx - keyLs[i].brightness);
+                    if (currentDiff > lastDiff) {
+                        keyLsPopulationsHUE[i - 1][hueIdx][0] += 1;
+                        keyLsPopulationsHUE[i - 1][hueIdx][saturationIdx + 1] += 1;
+                        break;
+                    } else if (i == keyLs.size() - 1) {
+                        keyLsPopulationsHUE[i][hueIdx][0] += 1;
+                        keyLsPopulationsHUE[i][hueIdx][saturationIdx + 1] += 1;
+                        break;
+                    }
+                    lastDiff = currentDiff;
                 }
-                
-                KeyHUE ph{};
-                ph.population = keyA.population + keyB.population;
-                if (hueAverage != 0)
-                    ph.hue = hueAverage / ph.population;
-                popHUE.erase(popHUE.begin() + i);
-                popHUE.erase(popHUE.begin() + (i % popHUE.size()));
-                popHUE.push_back(ph);
-                break;
             }
         }
     }
 
-    for (int i = 0; i < popHUE.size();) {
-        if (popHUE[i].population > totalPopulation / 20)
-            ++i;
-        else
-            popHUE.erase(popHUE.begin() + i);
+    for (int i = 0; i < keyLsPopulationsHUE.size(); ++i) {
+        for (int j = 0; j < HUE_VALUE_COUNT; ++j) {
+            if (keyLsPopulationsHUE[i][j][0] > keyLs[i].population / 500) {
+                KeyHS keyHS{};
+                keyHS.population = keyLsPopulationsHUE[i][j][0];
+                keyHS.hue = j;
+                for (int k = 0; k < SATURATION_VALUE_COUNT; ++k)
+                    keyHS.saturation += k * keyLsPopulationsHUE[i][j][k];
+                keyHS.saturation /= keyHS.population;
+                keyLs[i].keyHSs.push_back(keyHS);
+            }
+        }
+
+        std::vector<KeyHS>& keyHSs = keyLs[i].keyHSs;
+        for (int j = 0; j < keyHSs.size() && keyHSs.size() >= 2;) {
+            KeyHS keyA = keyHSs[j];
+            KeyHS keyB = keyHSs[(j + 1) % keyHSs.size()];
+
+            float rawDiff = abs(keyA.hue - keyB.hue);
+            float currentDiff = abs(abs(fmod(rawDiff * 2 / 360, 2) - 1) - 1) * 180;
+
+            if (currentDiff < 20.0f) {
+                KeyHS newKey{};
+                newKey.population = keyA.population + keyB.population;
+                newKey.saturation = (keyA.saturation * keyA.population + keyB.saturation * keyB.population) / newKey.population;
+                if (rawDiff <= 180) {
+                    newKey.hue = (keyA.hue * keyA.population + keyB.hue * keyB.population) / newKey.population;
+                    keyHSs.erase(keyHSs.begin() + j);
+                    keyHSs.erase(keyHSs.begin() + j % keyHSs.size());
+                    keyHSs.insert(keyHSs.begin() + j, newKey);
+                } else {
+                    newKey.hue = fmod((keyA.hue + 360.0) * keyA.population + keyB.hue * keyB.population, 360) / newKey.population;
+                    keyHSs.erase(keyHSs.begin() + j);
+                    keyHSs.erase(keyHSs.begin() + j % keyHSs.size());
+                    for (int k = 0; k < keyHSs.size(); ++k) {
+                        if (keyHSs[k].hue > newKey.hue) {
+                            keyHSs.insert(keyHSs.begin() + k, newKey);
+                            break;
+                        }
+                    }
+                }
+            } else {
+                ++j;
+            }
+        }
+
+        std::sort(keyHSs.begin(), keyHSs.end(), [](const KeyHS& a, const KeyHS& b){
+            return a.population > b.population;
+        });
     }
 
-    std::sort(popHUE.begin(), popHUE.end(), [](const KeyHUE& a, const KeyHUE& b){
+    std::sort(keyLs.begin(), keyLs.end(), [](const KeyL& a, const KeyL& b){
         return a.population > b.population;
     });
 
-    for (int i = 0; i < popHUE.size(); ++i) {
-        KeyHUE ph = popHUE[i];
-        printf("Key HUE: (population: %d, hue: %d)\n", ph.population, ph.hue);
+    Base16HSLPalette hslPalette{};
+
+    ColorHSL basePrimaryColor{};
+    basePrimaryColor.hue = keyLs[0].keyHSs[0].hue;
+    basePrimaryColor.saturation = keyLs[0].keyHSs[0].saturation;
+    basePrimaryColor.brightness = keyLs[0].brightness;
+
+    basePrimaryColor.brightness = std::clamp(basePrimaryColor.brightness, 10U, 90U);
+
+    std::vector<Scored<ColorHSL>> secondPrimaryColorScore{};
+
+    const int targetDifferenceHUE = 50;
+    const int targetDifferenceSaturation = 0;
+    const int targetDifferenceBrightness = 80;
+    for (auto keyL : keyLs) {
+        int brightnessMatchingScore = CalculateDifferenceMatchingScore(keyL.brightness, basePrimaryColor.brightness, targetDifferenceBrightness);
+        for (auto keyHS : keyL.keyHSs) {
+            int popularityScore = 100.0f - ((float)keyHS.population / (float)keyL.population * 100.0f);
+            int hueMatchingScore = CalculateDifferenceMatchingScore(keyHS.hue, basePrimaryColor.hue, targetDifferenceHUE);
+            int saturationMatchingScore = CalculateDifferenceMatchingScore(keyHS.saturation, basePrimaryColor.saturation, targetDifferenceSaturation);
+            
+            Scored<ColorHSL> scoredColor{};
+            scoredColor.score = brightnessMatchingScore + hueMatchingScore * 0.5 + saturationMatchingScore * 0.25 + popularityScore * 0.5;
+            scoredColor.data.hue = keyHS.hue;
+            scoredColor.data.saturation = keyHS.saturation;
+            scoredColor.data.brightness = keyL.brightness;
+            secondPrimaryColorScore.push_back(scoredColor);
+        }
     }
 
-    std::sort(keySL.begin(), keySL.end(), [](const KeySL& a, const KeySL& b){
-        return a.population > b.population;
+    std::sort(secondPrimaryColorScore.begin(), secondPrimaryColorScore.end(), [](const Scored<ColorHSL>& a, const Scored<ColorHSL>& b){
+        return a.score < b.score;
     });
 
-    for (int i = 0; i < keySL.size(); ++i) {
-        KeySL info = keySL[i];
-        printf("Key SL: (population: %d, brightness: %d, average saturation: %d)\n", info.population, info.brightness, info.averageSaturation);
+    for (int i = 0; i < 6; ++i) {
+        float t = (float)i / 6.0f;
+        hslPalette.primary[i].hue = Lerp(basePrimaryColor.hue, secondPrimaryColorScore[0].data.hue, t);
+        hslPalette.primary[i].saturation = Lerp(basePrimaryColor.saturation, secondPrimaryColorScore[0].data.saturation, t);
+        hslPalette.primary[i].brightness = Lerp(basePrimaryColor.brightness, secondPrimaryColorScore[0].data.brightness, t);
     }
 
-    //2 score, a matching score, simply the accumulated population of each color in the palette related to the img
-    //And a prettyness score, wich try to evaluate how coherent and pretty a palette is
+    std::swap(hslPalette.primary[0], hslPalette.primary[1]);
+
+    palette = PaletteHSLtoRGB(hslPalette);
+
+    for (auto keyL : keyLs) {
+        printf("KeyL: { population: %d%%, brightness: %d%% }\n", (int)((float)keyL.population / (float)totalPopulation * 100.0), (int)keyL.brightness);
+        for (auto keyHS : keyL.keyHSs) {
+            printf("\t- KeyHS: { population: %d%%, hue: %d, saturation: %d%%}\n", (int)((float)keyHS.population / (float)keyL.population * 100.0), (int)keyHS.hue, (int)keyHS.saturation);
+        }
+    }
 }
 
 void GetOptions(int argc, char* argv[], Options& options) {
