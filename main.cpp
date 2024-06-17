@@ -113,7 +113,6 @@ float GetColorHUE(float r, float g, float b) {
 }
 
 float HueToRgb(float p, float q, float t) {
-    printf("%f, %f, %f\n", p, q, t);
     if (t < 0.0f) t += 1;
     if (t > 1.0f) t -= 1;
     if (t < 1.0f/6.0f) return p + (q - p) * 6.0f * t;
@@ -144,7 +143,53 @@ Color Hsl2Rgb(const ColorHSL& hslColor) {
 }
 
 void WriteJsonPalette(const Base16Palette& palette, const char* path) {
-    
+        char buff[65536]{};
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+    snprintf(buff, 65536, R"JSON(
+{
+    "base00": "%02x%02x%02x",
+    "base01": "%02x%02x%02x",
+    "base02": "%02x%02x%02x",
+    "base03": "%02x%02x%02x",
+    "base04": "%02x%02x%02x",
+    "base05": "%02x%02x%02x",
+    "base06": "%02x%02x%02x",
+    "base07": "%02x%02x%02x",
+    "base08": "%02x%02x%02x",
+    "base09": "%02x%02x%02x",
+    "base0A": "%02x%02x%02x",
+    "base0B": "%02x%02x%02x",
+    "base0C": "%02x%02x%02x",
+    "base0D": "%02x%02x%02x",
+    "base0E": "%02x%02x%02x",
+    "base0F": "%02x%02x%02x"
+}
+    )JSON", 
+    palette.primary[0].r, palette.primary[0].g, palette.primary[0].b, 
+    palette.primary[1].r, palette.primary[1].g, palette.primary[1].b, 
+    palette.primary[2].r, palette.primary[2].g, palette.primary[2].b, 
+    palette.primary[3].r, palette.primary[3].g, palette.primary[3].b, 
+    palette.primary[4].r, palette.primary[4].g, palette.primary[4].b, 
+    palette.primary[5].r, palette.primary[5].g, palette.primary[5].b, 
+    palette.primary[6].r, palette.primary[6].g, palette.primary[6].b, 
+    palette.primary[7].r, palette.primary[7].g, palette.primary[7].b, 
+
+    palette.accents[0].r, palette.accents[0].g, palette.accents[0].b, 
+    palette.accents[1].r, palette.accents[1].g, palette.accents[1].b, 
+    palette.accents[2].r, palette.accents[2].g, palette.accents[2].b, 
+    palette.accents[3].r, palette.accents[3].g, palette.accents[3].b, 
+    palette.accents[4].r, palette.accents[4].g, palette.accents[4].b, 
+    palette.accents[5].r, palette.accents[5].g, palette.accents[5].b, 
+    palette.accents[6].r, palette.accents[6].g, palette.accents[6].b, 
+    palette.accents[7].r, palette.accents[7].g, palette.accents[7].b);
+#pragma GCC diagnostic pop
+
+    std::ofstream file{};
+    file.open(path);
+    file << buff;
+    file.close();
 }
 
 void WriteHtmlPalette(const Base16Palette& palette, const char* path) {
@@ -153,69 +198,69 @@ void WriteHtmlPalette(const Base16Palette& palette, const char* path) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
     snprintf(buff, 65536, R"HTML(
-    <html>
-        <head>
-            <style>
-                body {
-                    margin: 2rem;
-                    font-family: sans-serif;
-                }
-                body > div {
-                    display: flex;
-                    flex-direction: row;
-                    flex-wrap: wrap;
-                    gap: 1em;
-                }
-                body > div > div {
-                    width: 5rem;
-                    height: 5rem;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                }
-                #base00 { background-color: #%02x%02x%02x; color: #cdd6f4; }
-                #base01 { background-color: #%02x%02x%02x; color: #cdd6f4; }
-                #base02 { background-color: #%02x%02x%02x; color: #cdd6f4; }
-                #base03 { background-color: #%02x%02x%02x; color: #1e1e2e; }
-                #base04 { background-color: #%02x%02x%02x; color: #1e1e2e; }
-                #base05 { background-color: #%02x%02x%02x; color: #1e1e2e; }
-                #base06 { background-color: #%02x%02x%02x; color: #1e1e2e; }
-                #base07 { background-color: #%02x%02x%02x; color: #1e1e2e; }
-                #base08 { background-color: #%02x%02x%02x; color: #1e1e2e; }
-                #base09 { background-color: #%02x%02x%02x; color: #1e1e2e; }
-                #base0A { background-color: #%02x%02x%02x; color: #1e1e2e; }
-                #base0B { background-color: #%02x%02x%02x; color: #1e1e2e; }
-                #base0C { background-color: #%02x%02x%02x; color: #1e1e2e; }
-                #base0D { background-color: #%02x%02x%02x; color: #1e1e2e; }
-                #base0E { background-color: #%02x%02x%02x; color: #1e1e2e; }
-                #base0F { background-color: #%02x%02x%02x; color: #1e1e2e; }
-            </style>
-        </head>
-        <body>
-            <h2>Primary colors</h2>
-            <div>
-                <div id="base00">00</div>
-                <div id="base01">01</div>
-                <div id="base02">02</div>
-                <div id="base03">03</div>
-                <div id="base04">04</div>
-                <div id="base05">05</div>
-                <div id="base06">06</div>
-                <div id="base07">07</div>
-            </div>
-            <h2>Accents</h2>
-            <div>
-                <div id="base08">08</div>
-                <div id="base09">09</div>
-                <div id="base0A">0A</div>
-                <div id="base0B">0B</div>
-                <div id="base0C">0C</div>
-                <div id="base0D">0D</div>
-                <div id="base0E">0E</div>
-                <div id="base0F">0F</div>
-            </div>
-        </body>
-    </html>
+<html>
+    <head>
+        <style>
+            body {
+                margin: 2rem;
+                font-family: sans-serif;
+            }
+            body > div {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 1em;
+            }
+            body > div > div {
+                width: 5rem;
+                height: 5rem;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            #base00 { background-color: #%02x%02x%02x; color: #cdd6f4; }
+            #base01 { background-color: #%02x%02x%02x; color: #cdd6f4; }
+            #base02 { background-color: #%02x%02x%02x; color: #cdd6f4; }
+            #base03 { background-color: #%02x%02x%02x; color: #1e1e2e; }
+            #base04 { background-color: #%02x%02x%02x; color: #1e1e2e; }
+            #base05 { background-color: #%02x%02x%02x; color: #1e1e2e; }
+            #base06 { background-color: #%02x%02x%02x; color: #1e1e2e; }
+            #base07 { background-color: #%02x%02x%02x; color: #1e1e2e; }
+            #base08 { background-color: #%02x%02x%02x; color: #1e1e2e; }
+            #base09 { background-color: #%02x%02x%02x; color: #1e1e2e; }
+            #base0A { background-color: #%02x%02x%02x; color: #1e1e2e; }
+            #base0B { background-color: #%02x%02x%02x; color: #1e1e2e; }
+            #base0C { background-color: #%02x%02x%02x; color: #1e1e2e; }
+            #base0D { background-color: #%02x%02x%02x; color: #1e1e2e; }
+            #base0E { background-color: #%02x%02x%02x; color: #1e1e2e; }
+            #base0F { background-color: #%02x%02x%02x; color: #1e1e2e; }
+        </style>
+    </head>
+    <body>
+        <h2>Primary colors</h2>
+        <div>
+            <div id="base00">00</div>
+            <div id="base01">01</div>
+            <div id="base02">02</div>
+            <div id="base03">03</div>
+            <div id="base04">04</div>
+            <div id="base05">05</div>
+            <div id="base06">06</div>
+            <div id="base07">07</div>
+        </div>
+        <h2>Accents</h2>
+        <div>
+            <div id="base08">08</div>
+            <div id="base09">09</div>
+            <div id="base0A">0A</div>
+            <div id="base0B">0B</div>
+            <div id="base0C">0C</div>
+            <div id="base0D">0D</div>
+            <div id="base0E">0E</div>
+            <div id="base0F">0F</div>
+        </div>
+    </body>
+</html>
     )HTML", 
     palette.primary[0].r, palette.primary[0].g, palette.primary[0].b, 
     palette.primary[1].r, palette.primary[1].g, palette.primary[1].b, 
@@ -261,6 +306,60 @@ float Lerp(float a, float b, float t) {
     return a + (b - a) * t;
 }
 
+void GetMatchingDiffColor(const std::vector<KeyL>& keyLs, std::vector<Scored<ColorHSL>>& scoredColors, 
+    ColorHSL refColor, int t0 /*HUE*/, int t1 /*Saturation*/, int t2 /*Brightness*/, int w0, int w1, int w2, int w3, bool signedBrightness) {
+    scoredColors.clear();
+    for (auto keyL : keyLs) {
+        int brightnessMatchingScore{};
+        if (signedBrightness) {
+            brightnessMatchingScore = abs(keyL.brightness - refColor.brightness - t2);
+        }else {
+            brightnessMatchingScore = CalculateDifferenceMatchingScore(keyL.brightness, refColor.brightness, t2);
+        }
+
+        for (auto keyHS : keyL.keyHSs) {
+            int popularityScore = 100.0f - std::clamp(((float)keyHS.population / 10000.0f), 0.0f, 100.0f);
+            int hueMatchingScore = CalculateDifferenceMatchingScore(keyHS.hue, refColor.hue, t0);
+            int saturationMatchingScore = CalculateDifferenceMatchingScore(keyHS.saturation, refColor.saturation, t1);
+            
+            Scored<ColorHSL> scoredColor{};
+            scoredColor.score = brightnessMatchingScore * w2 + hueMatchingScore * w0 + saturationMatchingScore * w1 + popularityScore * w3;
+            scoredColor.data.hue = keyHS.hue;
+            scoredColor.data.saturation = keyHS.saturation;
+            scoredColor.data.brightness = keyL.brightness;
+            scoredColors.push_back(scoredColor);
+        }
+    }
+
+    std::sort(scoredColors.begin(), scoredColors.end(), [](const Scored<ColorHSL>& a, const Scored<ColorHSL>& b){
+        return a.score < b.score;
+    });
+}
+
+void GetMatchingColor(const std::vector<KeyL>& keyLs, std::vector<Scored<ColorHSL>>& scoredColors, 
+    int t0 /*HUE*/, int t1 /*Saturation*/, int t2 /*Brightness*/, int w0, int w1, int w2, int w3) {
+    scoredColors.clear();
+    for (auto keyL : keyLs) {
+        int brightnessMatchingScore = abs(keyL.brightness - t2);
+        for (auto keyHS : keyL.keyHSs) {
+            int popularityScore = 100.0f - std::clamp(((float)keyHS.population / 10000.0f), 0.0f, 100.0f);
+            int hueMatchingScore = abs(keyHS.hue - t0);
+            int saturationMatchingScore = abs(keyHS.saturation - t1);
+            
+            Scored<ColorHSL> scoredColor{};
+            scoredColor.score = brightnessMatchingScore * w2 + hueMatchingScore * w0 + saturationMatchingScore * w1 + popularityScore * w3;
+            scoredColor.data.hue = keyHS.hue;
+            scoredColor.data.saturation = keyHS.saturation;
+            scoredColor.data.brightness = keyL.brightness;
+            scoredColors.push_back(scoredColor);
+        }
+    }
+
+    std::sort(scoredColors.begin(), scoredColors.end(), [](const Scored<ColorHSL>& a, const Scored<ColorHSL>& b){
+        return a.score < b.score;
+    });
+}
+
 void ExtractPaletteFromImage(unsigned char* data, int width, int height, int channels, Base16Palette& palette) {
     int totalPopulation = width * height;
     int populationBrightness[BRIGHTNESS_VALUE_COUNT]{};
@@ -293,7 +392,7 @@ void ExtractPaletteFromImage(unsigned char* data, int width, int height, int cha
         KeyL keyA = keyLs[i];
         KeyL keyB = keyLs[i + 1];
 
-        if (keyB.brightness - keyA.brightness < 8.0f) {
+        if (keyB.brightness - keyA.brightness < 3.0f) {
             KeyL newKey{};
             newKey.population = keyA.population + keyB.population;
             newKey.brightness = (keyA.brightness * keyA.population + keyB.brightness * keyB.population) / newKey.population;
@@ -391,46 +490,40 @@ void ExtractPaletteFromImage(unsigned char* data, int width, int height, int cha
 
     Base16HSLPalette hslPalette{};
 
-    ColorHSL basePrimaryColor{};
-    basePrimaryColor.hue = keyLs[0].keyHSs[0].hue;
-    basePrimaryColor.saturation = keyLs[0].keyHSs[0].saturation;
-    basePrimaryColor.brightness = keyLs[0].brightness;
+    std::vector<Scored<ColorHSL>> scoredColors{};
 
-    basePrimaryColor.brightness = std::clamp(basePrimaryColor.brightness, 10U, 90U);
+    GetMatchingColor(keyLs, scoredColors, 0, 0, 10, 0.0f, 0.0f, 1.0f, 1.0f);
+    hslPalette.primary[0] = scoredColors[0].data;
 
-    std::vector<Scored<ColorHSL>> secondPrimaryColorScore{};
-
-    const int targetDifferenceHUE = 50;
-    const int targetDifferenceSaturation = 0;
-    const int targetDifferenceBrightness = 80;
-    for (auto keyL : keyLs) {
-        int brightnessMatchingScore = CalculateDifferenceMatchingScore(keyL.brightness, basePrimaryColor.brightness, targetDifferenceBrightness);
-        for (auto keyHS : keyL.keyHSs) {
-            int popularityScore = 100.0f - ((float)keyHS.population / (float)keyL.population * 100.0f);
-            int hueMatchingScore = CalculateDifferenceMatchingScore(keyHS.hue, basePrimaryColor.hue, targetDifferenceHUE);
-            int saturationMatchingScore = CalculateDifferenceMatchingScore(keyHS.saturation, basePrimaryColor.saturation, targetDifferenceSaturation);
-            
-            Scored<ColorHSL> scoredColor{};
-            scoredColor.score = brightnessMatchingScore + hueMatchingScore * 0.5 + saturationMatchingScore * 0.25 + popularityScore * 0.5;
-            scoredColor.data.hue = keyHS.hue;
-            scoredColor.data.saturation = keyHS.saturation;
-            scoredColor.data.brightness = keyL.brightness;
-            secondPrimaryColorScore.push_back(scoredColor);
+    for (int i = 1; i < 6; ++i) {
+        switch (i) {
+            case 5:
+                GetMatchingDiffColor(keyLs, scoredColors, hslPalette.primary[i - 1], 50, 0, 40, 0.25f, 0.0f, 2.0f, 0.25f, true);
+                hslPalette.primary[i] = scoredColors[0].data;
+                break;
+            default:
+                GetMatchingDiffColor(keyLs, scoredColors, hslPalette.primary[i - 1], 10, 0, 8, 0.5f, 0.25f, 1.0f, 0.5f, true);
+                hslPalette.primary[i] = scoredColors[0].data;
+                break;
         }
     }
 
-    std::sort(secondPrimaryColorScore.begin(), secondPrimaryColorScore.end(), [](const Scored<ColorHSL>& a, const Scored<ColorHSL>& b){
-        return a.score < b.score;
-    });
-
-    for (int i = 0; i < 6; ++i) {
-        float t = (float)i / 6.0f;
-        hslPalette.primary[i].hue = Lerp(basePrimaryColor.hue, secondPrimaryColorScore[0].data.hue, t);
-        hslPalette.primary[i].saturation = Lerp(basePrimaryColor.saturation, secondPrimaryColorScore[0].data.saturation, t);
-        hslPalette.primary[i].brightness = Lerp(basePrimaryColor.brightness, secondPrimaryColorScore[0].data.brightness, t);
-    }
-
     std::swap(hslPalette.primary[0], hslPalette.primary[1]);
+
+    GetMatchingColor(keyLs, scoredColors, 0, 50, 70, 0.0f, 1.0f, 1.0f, 0.1f);
+
+    for (int i = 0; i < 10; ++i) {
+        ColorHSL color{};
+        color.hue = (float)i / 10.0f * 360;
+        color.saturation = scoredColors[0].data.saturation;
+        color.brightness = scoredColors[0].data.brightness;
+
+        if (i <= 1) {
+            hslPalette.primary[i + 6] = color;
+        } else {
+            hslPalette.accents[i - 2] = color;
+        }
+    }
 
     palette = PaletteHSLtoRGB(hslPalette);
 
@@ -488,6 +581,11 @@ int main(int argc, char* argv[]) {
 
     Base16Palette palette{};
     ExtractPaletteFromImage(data, width, height, channels, palette);
+    
+    if (options.outputJsonPalette) {
+        WriteJsonPalette(palette, options.outputJsonPalette);
+        std::cout << "Writing JSON palette to \"" << options.outputJsonPalette << "\"." << std::endl;
+    }
 
     if (options.outputHtmlPalette) {
         WriteHtmlPalette(palette, options.outputHtmlPalette);
