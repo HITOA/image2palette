@@ -513,10 +513,8 @@ void ExtractPaletteFromImage(unsigned char* data, int width, int height, int cha
     GetMatchingColor(keyLs, scoredColors, 0, 50, 70, 0.0f, 1.0f, 1.0f, 0.1f);
 
     for (int i = 0; i < 10; ++i) {
-        ColorHSL color{};
-        color.hue = (float)i / 10.0f * 360;
-        color.saturation = scoredColors[0].data.saturation;
-        color.brightness = scoredColors[0].data.brightness;
+        ColorHSL color = scoredColors[i].data;
+        printf("Score: %d\n", scoredColors[i].score);
 
         if (i <= 1) {
             hslPalette.primary[i + 6] = color;
